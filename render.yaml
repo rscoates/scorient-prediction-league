@@ -4,7 +4,7 @@ services:
     runtime: docker
     plan: starter
     dockerContext: backend
-    dockerfilePath: Dockerfile
+    dockerfilePath: backend/Dockerfile
     dockerCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
@@ -38,7 +38,7 @@ services:
     runtime: docker
     plan: starter
     dockerContext: frontend
-    dockerfilePath: Dockerfile
+    dockerfilePath: frontend/Dockerfile
     healthCheckPath: /
     envVars:
       - key: VITE_API_URL
