@@ -7,13 +7,11 @@ services:
     dockerfilePath: Dockerfile
     dockerCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
-    disk:
-      name: scorient-data
-      mountPath: /data
-      sizeGB: 1
     envVars:
       - key: DATABASE_URL
-        value: sqlite:////data/scorient.db
+        fromDatabase:
+          name: scorient-db
+          property: connectionString
       - key: JWT_SECRET
         generateValue: true
       - key: DEV_AUTH_ENABLED
@@ -49,3 +47,7 @@ services:
         sync: false
       - key: VITE_DEV_AUTH
         value: false
+
+databases:
+  - name: scorient-db
+    plan: starter
