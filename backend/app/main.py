@@ -21,7 +21,18 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Scorient Prediction API", lifespan=lifespan)
 
 # ── CORS ───────────────────────────────────────────────────────────────────────
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
+def _parse_cors_origins(raw: str) -> list[str]:
+    origins: list[str] = []
+    for origin in raw.split(","):
+        o = origin.strip().rstrip("/")
+        if o:
+            origins.append(o)
+    return origins
+
+
+CORS_ORIGINS = _parse_cors_origins(
+    os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000")
+)
 
 app.add_middleware(
     CORSMiddleware,
