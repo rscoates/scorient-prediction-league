@@ -35,14 +35,18 @@ services:
 
   - type: web
     name: frontend
-    runtime: docker
+    runtime: static
     plan: starter
-    dockerContext: frontend
-    dockerfilePath: frontend/Dockerfile
-    healthCheckPath: /
+    rootDir: frontend
+    buildCommand: |
+      corepack enable
+      corepack prepare pnpm@latest --activate
+      pnpm install --frozen-lockfile
+      pnpm run build
+    staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
-        value: /api
+        sync: false
       - key: VITE_GOOGLE_CLIENT_ID
         sync: false
       - key: VITE_DEV_AUTH
