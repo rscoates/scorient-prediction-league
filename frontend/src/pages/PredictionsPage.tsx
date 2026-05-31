@@ -21,13 +21,14 @@ export default function PredictionsPage() {
   const [predictions, setPredictions] = useState<Record<string, MatchPrediction>>({})
   const [tournament, setTournament] = useState<Tournament | null>(null)
   const [loading, setLoading] = useState(true)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const loadAll = useCallback(async () => {
     setLoading(true)
     try {
-      const [t, matchList, predList] = await Promise.all([
-        api.getTournament('wc2026'),
-        api.getMatches({ tournament_id: undefined }),
+      const t = await api.getTournament('wc2026')
+      const [matchList, predList] = await Promise.all([
+        api.getMatches({ tournament_id: t.id }),
         api.getMyMatchPredictions(),
       ])
       setTournament(t)
@@ -35,6 +36,7 @@ export default function PredictionsPage() {
       const predMap: Record<string, MatchPrediction> = {}
       predList.forEach((p) => { predMap[p.match_uid] = p })
       setPredictions(predMap)
+      setSaveError(null)
     } finally {
       setLoading(false)
     }
@@ -44,10 +46,13 @@ export default function PredictionsPage() {
 
   const handlePredictionChange = useCallback(
     async (matchUid: string, home: number | null, away: number | null) => {
+      setSaveError(null)
       setPredictions((prev) => ({ ...prev, [matchUid]: { match_uid: matchUid, home_score: home, away_score: away } }))
       try {
         await api.saveMatchPrediction(matchUid, home, away)
-      } catch {
+      } catch (err: any) {
+        const detail = err?.response?.data?.detail
+        setSaveError(typeof detail === 'string' ? detail : 'Could not save prediction')
         // revert on error
         loadAll()
       }
@@ -76,6 +81,12 @@ export default function PredictionsPage() {
         <h1 className="text-2xl font-semibold text-brand-900">My Predictions</h1>
         <p className="text-gray-500 mt-1 text-sm">Changes are saved automatically as you type.</p>
       </div>
+
+      {saveError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+          {saveError}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-gray-200 overflow-x-auto">

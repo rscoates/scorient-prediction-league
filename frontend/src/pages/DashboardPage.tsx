@@ -48,9 +48,11 @@ export default function DashboardPage() {
     try {
       await api.joinLeague(joinCode.trim())
       setJoinCode('')
+      setError(null)
       fetchData()
-    } catch {
-      setError('Invalid invite code')
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail
+      setError(typeof detail === 'string' ? detail : 'Invalid invite code')
     }
   }
 
