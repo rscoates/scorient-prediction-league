@@ -36,7 +36,6 @@ services:
   - type: web
     name: frontend
     runtime: static
-    plan: starter
     rootDir: frontend
     buildCommand: |
       corepack enable
