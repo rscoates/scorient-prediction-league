@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  /* Number inputs use numeric keyboard on mobile */
+  input[type='number'] {
+    -moz-appearance: textfield;
+    inputmode: numeric;
+  }
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+  }
+}
+
+@layer components {
+  .score-input {
+    @apply w-12 h-12 text-center text-lg font-semibold border-2 border-brand-200
+           rounded-lg focus:outline-none focus:border-brand-600 focus:ring-2
+           focus:ring-brand-200 transition-colors bg-white;
+  }
+
+  .rag-green  { @apply bg-green-100 border-green-400 text-green-800; }
+  .rag-amber  { @apply bg-amber-100 border-amber-400 text-amber-800; }
+  .rag-red    { @apply bg-red-100 border-red-400 text-red-800; }
+
+  .btn-primary {
+    @apply bg-brand-800 text-white px-4 py-2 rounded-lg font-medium
+           hover:bg-brand-700 active:bg-brand-900 transition-colors
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-brand-800 border border-brand-300 px-4 py-2 rounded-lg
+           font-medium hover:bg-brand-50 transition-colors;
+  }
+
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-4;
+  }
+}

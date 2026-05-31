@@ -1,0 +1,56 @@
+services:
+  - type: web
+    name: scorient-prediction-api
+    runtime: python
+    rootDir: backend
+    plan: starter
+    buildCommand: |
+      pip install -r requirements.txt
+      cp -f ../worldcup2026.json ./worldcup2026.json
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    disk:
+      name: scorient-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:////data/scorient.db
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DEV_AUTH_ENABLED
+        value: false
+      - key: CORS_ORIGINS
+        value: https://scorient-prediction-frontend.onrender.com
+      - key: APP_URL
+        value: https://scorient-prediction-frontend.onrender.com
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: EMAIL_FROM
+        value: noreply@scorient.app
+
+staticSites:
+  - name: scorient-prediction-frontend
+    rootDir: frontend
+    buildCommand: |
+      corepack enable
+      corepack prepare pnpm@latest --activate
+      pnpm install --frozen-lockfile
+      pnpm run build
+    publishPath: dist
+    pullRequestPreviewsEnabled: true
+    envVars:
+      - key: VITE_API_URL
+        value: https://scorient-prediction-api.onrender.com
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false
+      - key: VITE_DEV_AUTH
+        value: false
