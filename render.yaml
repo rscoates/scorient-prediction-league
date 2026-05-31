@@ -50,4 +50,4 @@ services:
 
 databases:
   - name: scorient-db
-    plan: basic
+    plan: basic-1gb
