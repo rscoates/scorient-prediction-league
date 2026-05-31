@@ -51,6 +51,16 @@ app.include_router(predictions.router)
 app.include_router(admin.router)
 app.include_router(export.router)
 
+# Also expose /api-prefixed aliases so static-site deployments can use either
+# BASE=https://backend... or BASE=https://backend.../api transparently.
+app.include_router(auth_router.router, prefix="/api")
+app.include_router(tournaments.router, prefix="/api")
+app.include_router(leagues.router, prefix="/api")
+app.include_router(matches.router, prefix="/api")
+app.include_router(predictions.router, prefix="/api")
+app.include_router(admin.router, prefix="/api")
+app.include_router(export.router, prefix="/api")
+
 
 @app.get("/health")
 def health():
