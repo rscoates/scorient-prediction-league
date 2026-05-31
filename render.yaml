@@ -43,6 +43,10 @@ services:
       pnpm install --frozen-lockfile
       pnpm run build
     staticPublishPath: dist
+    headers:
+      - path: /*
+        name: Cross-Origin-Opener-Policy
+        value: same-origin-allow-popups
     envVars:
       - key: VITE_API_URL
         sync: false
