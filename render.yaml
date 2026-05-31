@@ -1,13 +1,11 @@
 services:
   - type: web
-    name: scorient-prediction-api
-    runtime: python
-    rootDir: backend
+    name: backend
+    runtime: docker
     plan: starter
-    buildCommand: |
-      pip install -r requirements.txt
-      cp -f ../worldcup2026.json ./worldcup2026.json
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    dockerContext: backend
+    dockerfilePath: Dockerfile
+    dockerCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     disk:
       name: scorient-data
@@ -21,9 +19,9 @@ services:
       - key: DEV_AUTH_ENABLED
         value: false
       - key: CORS_ORIGINS
-        value: https://scorient-prediction-frontend.onrender.com
+        sync: false
       - key: APP_URL
-        value: https://scorient-prediction-frontend.onrender.com
+        sync: false
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: SMTP_HOST
@@ -37,19 +35,16 @@ services:
       - key: EMAIL_FROM
         value: noreply@scorient.app
 
-staticSites:
-  - name: scorient-prediction-frontend
-    rootDir: frontend
-    buildCommand: |
-      corepack enable
-      corepack prepare pnpm@latest --activate
-      pnpm install --frozen-lockfile
-      pnpm run build
-    publishPath: dist
-    pullRequestPreviewsEnabled: true
+  - type: web
+    name: frontend
+    runtime: docker
+    plan: starter
+    dockerContext: frontend
+    dockerfilePath: Dockerfile
+    healthCheckPath: /
     envVars:
       - key: VITE_API_URL
-        value: https://scorient-prediction-api.onrender.com
+        value: /api
       - key: VITE_GOOGLE_CLIENT_ID
         sync: false
       - key: VITE_DEV_AUTH
