@@ -133,6 +133,8 @@ export default function PredictionsPage() {
           )].sort()}
           locked={isLocked('Group')}
           deadline={deadlineFor('Group')}
+          groupMatches={groupMatches}
+          groupPredictions={predictions}
         />
       )}
 

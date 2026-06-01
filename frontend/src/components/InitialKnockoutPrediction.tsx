@@ -1,12 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import * as api from '../api'
-import type { KnockoutPrediction } from '../types'
+import type { Match, MatchPrediction, KnockoutPrediction } from '../types'
+import { groupByGroup, buildGroupTable } from './GroupPredictions'
 
 interface Props {
   tournamentKey: string
   allTeams: string[]
   locked: boolean
   deadline: Date | null
+  groupMatches: Match[]
+  groupPredictions: Record<string, MatchPrediction>
 }
 
 interface RoundConfig {
@@ -24,12 +27,60 @@ const ROUNDS: RoundConfig[] = [
   { key: 'final_teams', label: 'The Final (2 teams)', count: 2, points: '20 pts each' },
 ]
 
-export default function InitialKnockoutPrediction({ tournamentKey, allTeams, locked, deadline }: Props) {
+export default function InitialKnockoutPrediction({ tournamentKey, allTeams, locked, deadline, groupMatches, groupPredictions }: Props) {
   const [pred, setPred] = useState<KnockoutPrediction>({
     r32_teams: [], r16_teams: [], qf_teams: [], sf_teams: [], final_teams: [], winner: null,
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+
+  // Check all group matches have both scores predicted
+  const allGroupPredsFilled = useMemo(() => {
+    if (groupMatches.length === 0) return false
+    return groupMatches.every((m) => {
+      const p = groupPredictions[m.match_uid]
+      return p?.home_score !== null && p?.home_score !== undefined &&
+             p?.away_score !== null && p?.away_score !== undefined
+    })
+  }, [groupMatches, groupPredictions])
+
+  const computeR32Teams = (): string[] => {
+    const grouped = groupByGroup(groupMatches)
+    const top2: string[] = []
+    const thirdPlace: { team: string; points: number; gd: number; gf: number }[] = []
+
+    for (const [, matches] of Object.entries(grouped)) {
+      const table = buildGroupTable(matches, groupPredictions)
+      if (table.length >= 1) top2.push(table[0].team)
+      if (table.length >= 2) top2.push(table[1].team)
+      if (table.length >= 3) {
+        const t = table[2]
+        thirdPlace.push({ team: t.team, points: t.points, gd: t.goalDifference, gf: t.goalsFor })
+      }
+    }
+
+    thirdPlace.sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points
+      if (b.gd !== a.gd) return b.gd - a.gd
+      if (b.gf !== a.gf) return b.gf - a.gf
+      return a.team.localeCompare(b.team)
+    })
+
+    return [...top2, ...thirdPlace.slice(0, 8).map((t) => t.team)].sort()
+  }
+
+  const handleAutoFillR32 = async () => {
+    if (!allGroupPredsFilled || locked) return
+    const r32 = computeR32Teams()
+    const newPred = { ...pred, r32_teams: r32 }
+    setPred(newPred)
+    setSaving(true)
+    try {
+      await api.saveKnockoutPrediction(tournamentKey, { r32_teams: r32 })
+    } finally {
+      setSaving(false)
+    }
+  }
 
   useEffect(() => {
     api.getKnockoutPrediction(tournamentKey)
@@ -80,11 +131,32 @@ export default function InitialKnockoutPrediction({ tournamentKey, allTeams, loc
 
       {ROUNDS.map(({ key, label, count, points }) => {
         const selected = (pred[key] ?? []) as string[]
+        const isR32 = key === 'r32_teams'
         return (
           <div key={key} className="card">
             <div className="flex items-baseline justify-between mb-3">
               <h3 className="font-medium text-brand-800 text-sm">{label}</h3>
-              <span className="text-xs text-brand-600 font-medium">{points}</span>
+              <div className="flex items-center gap-3">
+                {isR32 && !locked && (
+                  <div className="flex items-center gap-2">
+                    {!allGroupPredsFilled && (
+                      <span className="text-xs text-amber-600">Fill in all group predictions first</span>
+                    )}
+                    <button
+                      onClick={handleAutoFillR32}
+                      disabled={!allGroupPredsFilled}
+                      className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                        allGroupPredsFilled
+                          ? 'bg-brand-700 text-white hover:bg-brand-800'
+                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      Auto-fill from group predictions
+                    </button>
+                  </div>
+                )}
+                <span className="text-xs text-brand-600 font-medium">{points}</span>
+              </div>
             </div>
             <div className="text-xs text-gray-400 mb-3">
               Selected: {selected.length} / {count}

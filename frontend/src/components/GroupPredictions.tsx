@@ -10,7 +10,7 @@ interface Props {
 }
 
 // Group matches by group name, then by matchday within group
-function groupByGroup(matches: Match[]): Record<string, Match[]> {
+export function groupByGroup(matches: Match[]): Record<string, Match[]> {
   const groups: Record<string, Match[]> = {}
   for (const m of matches) {
     const g = m.group ?? 'Other'
@@ -28,7 +28,7 @@ function ragClass(rag: RagStatus): string {
   return ''
 }
 
-interface GroupTableRow {
+export interface GroupTableRow {
   team: string
   played: number
   won: number
@@ -138,7 +138,7 @@ function sortRowsByTieBreakers(
   return sorted
 }
 
-function buildGroupTable(groupMatches: Match[], predictions: Record<string, MatchPrediction>): GroupTableRow[] {
+export function buildGroupTable(groupMatches: Match[], predictions: Record<string, MatchPrediction>): GroupTableRow[] {
   const table = new Map<string, GroupTableRow>()
 
   const ensureTeam = (team: string | null): GroupTableRow | null => {
