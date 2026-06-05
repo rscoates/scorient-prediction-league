@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scorient</title>
+  </head>
+  <body>
+    <script>
+      (function () {
+        var redirectPath = window.location.pathname + window.location.search + window.location.hash
+
+        if (redirectPath && redirectPath !== '/') {
+          window.sessionStorage.setItem('spa-redirect-path', redirectPath)
+        }
+
+        window.location.replace('/')
+      })()
+    </script>
+  </body>
+</html>
