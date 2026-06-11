@@ -15,6 +15,27 @@ interface Props {
   isLocked: (stage: string) => boolean
 }
 
+function sortMatchesChronologically(matches: Match[]): Match[] {
+  return [...matches].sort((a, b) => {
+    const aTime = a.start_time ? Date.parse(a.start_time) : Number.MAX_SAFE_INTEGER
+    const bTime = b.start_time ? Date.parse(b.start_time) : Number.MAX_SAFE_INTEGER
+    if (aTime !== bTime) return aTime - bTime
+    return a.match_uid.localeCompare(b.match_uid)
+  })
+}
+
+function actualScore(match: Match, detail?: MatchDetail): { home: number | null; away: number | null } {
+  return {
+    home: match.effective_home_score ?? detail?.actual_home ?? null,
+    away: match.effective_away_score ?? detail?.actual_away ?? null,
+  }
+}
+
+function isMatchCompleted(match: Match, detail?: MatchDetail): boolean {
+  const actual = actualScore(match, detail)
+  return actual.home !== null && actual.away !== null
+}
+
 function ragClass(rag: RagStatus): string {
   if (rag === 'green') return 'rag-green'
   if (rag === 'amber') return 'rag-amber'
@@ -28,6 +49,10 @@ export default function KnockoutRoundPredictions({ matches, predictions, details
     const s = m.stage ?? 'Other'
     if (!byStage[s]) byStage[s] = []
     byStage[s].push(m)
+  }
+
+  for (const stage of Object.keys(byStage)) {
+    byStage[stage] = sortMatchesChronologically(byStage[stage])
   }
 
   const stages = STAGE_ORDER.filter((s) => byStage[s]?.length)
@@ -67,6 +92,7 @@ export default function KnockoutRoundPredictions({ matches, predictions, details
               {stageMatches.map((match) => {
                 const pred = predictions[match.match_uid]
                 const detail = details[match.match_uid]
+                const actual = actualScore(match, detail)
                 const teamsUnknown = isPlaceholder(match.home_team) || isPlaceholder(match.away_team)
                 const locked = deadlineLocked || teamsUnknown
                 return (
@@ -102,14 +128,14 @@ export default function KnockoutRoundPredictions({ matches, predictions, details
                       />
                     </div>
                     <span className="font-medium text-brand-800 text-sm flex-1">{match.away_team ?? '?'}</span>
-                    {match.effective_home_score !== null && match.effective_away_score !== null && (
+                    {isMatchCompleted(match, detail) && (
                       <span className="text-xs text-gray-400 font-mono ml-2">
-                        ({match.effective_home_score}–{match.effective_away_score})
+                        ({actual.home}–{actual.away})
                       </span>
                     )}
-                    {detail && detail.actual_home !== null && detail.actual_away !== null && (
-                      <span className={`text-xs font-semibold rounded-full px-2 py-1 ml-2 ${ragClass(detail.rag)}`}>
-                        {detail.points} pts
+                    {isMatchCompleted(match, detail) && (
+                      <span className={`text-xs font-semibold rounded-full px-2 py-1 ml-2 ${ragClass(detail?.rag ?? null)}`}>
+                        {detail?.points ?? 0} pts
                       </span>
                     )}
                     {teamsUnknown && (

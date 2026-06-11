@@ -10,6 +10,27 @@ interface Props {
   deadline: Date | null
 }
 
+function sortMatchesChronologically(matches: Match[]): Match[] {
+  return [...matches].sort((a, b) => {
+    const aTime = a.start_time ? Date.parse(a.start_time) : Number.MAX_SAFE_INTEGER
+    const bTime = b.start_time ? Date.parse(b.start_time) : Number.MAX_SAFE_INTEGER
+    if (aTime !== bTime) return aTime - bTime
+    return a.match_uid.localeCompare(b.match_uid)
+  })
+}
+
+function actualScore(match: Match, detail?: MatchDetail): { home: number | null; away: number | null } {
+  return {
+    home: match.effective_home_score ?? detail?.actual_home ?? null,
+    away: match.effective_away_score ?? detail?.actual_away ?? null,
+  }
+}
+
+function isMatchCompleted(match: Match, detail?: MatchDetail): boolean {
+  const actual = actualScore(match, detail)
+  return actual.home !== null && actual.away !== null
+}
+
 // Group matches by group name, then by matchday within group
 export function groupByGroup(matches: Match[]): Record<string, Match[]> {
   const groups: Record<string, Match[]> = {}
@@ -19,7 +40,11 @@ export function groupByGroup(matches: Match[]): Record<string, Match[]> {
     groups[g].push(m)
   }
   // Sort groups alphabetically
-  return Object.fromEntries(Object.entries(groups).sort(([a], [b]) => a.localeCompare(b)))
+  return Object.fromEntries(
+    Object.entries(groups)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([group, groupMatches]) => [group, sortMatchesChronologically(groupMatches)]),
+  )
 }
 
 function ragClass(rag: RagStatus): string {
@@ -257,6 +282,7 @@ export default function GroupPredictions({ matches, predictions, details, onChan
                 {groupMatches.map((match, idx) => {
                   const pred = predictions[match.match_uid]
                   const detail = details[match.match_uid]
+                  const actual = actualScore(match, detail)
                   const rag: RagStatus = detail?.rag ?? null
                   const homeKey = `${match.match_uid}-home`
                   const awayKey = `${match.match_uid}-away`
@@ -308,17 +334,17 @@ export default function GroupPredictions({ matches, predictions, details, onChan
                       </td>
                       <td className="py-2.5 px-3 font-medium text-brand-800">{match.away_team}</td>
                       <td className="py-2.5 px-3 text-center hidden md:table-cell">
-                        {match.effective_home_score !== null && match.effective_away_score !== null ? (
+                        {isMatchCompleted(match, detail) ? (
                           <span className="text-gray-600 font-mono text-xs">
-                            {match.effective_home_score}–{match.effective_away_score}
+                            {actual.home}–{actual.away}
                           </span>
                         ) : (
                           <span className="text-gray-300 text-xs">–</span>
                         )}
                       </td>
                       <td className="py-2.5 px-3 text-center hidden md:table-cell">
-                        {detail && detail.actual_home !== null && detail.actual_away !== null ? (
-                          <span className="font-semibold text-xs">{detail.points}</span>
+                        {isMatchCompleted(match, detail) ? (
+                          <span className="font-semibold text-xs">{detail?.points ?? 0}</span>
                         ) : (
                           <span className="text-gray-400 text-xs">–</span>
                         )}

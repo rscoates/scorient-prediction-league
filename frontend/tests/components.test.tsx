@@ -135,6 +135,41 @@ describe('GroupPredictions', () => {
 
     expect(screen.getByText('5')).toBeInTheDocument()
   })
+
+  test('shows zero points for a completed group match without score details', () => {
+    render(
+      <GroupPredictions
+        matches={[{ ...makeMatch('m1', 'France', 'England'), effective_home_score: 2, effective_away_score: 1 }]}
+        predictions={{}}
+        details={{}}
+        onChange={onChange}
+        locked={false}
+        deadline={null}
+      />,
+    )
+
+    expect(screen.getByLabelText('France score').closest('tr')).toHaveTextContent('0')
+  })
+
+  test('keeps group matches in chronological order', () => {
+    render(
+      <GroupPredictions
+        matches={[
+          { ...makeMatch('late', 'Brazil', 'Germany'), start_time: '2026-06-12T20:00:00Z' },
+          { ...makeMatch('early', 'France', 'England'), start_time: '2026-06-11T17:00:00Z', effective_home_score: 2, effective_away_score: 1 },
+        ]}
+        predictions={{}}
+        details={{}}
+        onChange={onChange}
+        locked={false}
+        deadline={null}
+      />,
+    )
+
+    const franceRow = screen.getByLabelText('France score').closest('tr')
+    const brazilRow = screen.getByLabelText('Brazil score').closest('tr')
+    expect(franceRow?.compareDocumentPosition(brazilRow as Node) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
 })
 
 describe('KnockoutRoundPredictions', () => {
@@ -172,6 +207,48 @@ describe('KnockoutRoundPredictions', () => {
     )
 
     expect(screen.getByText('5 pts')).toBeInTheDocument()
+  })
+
+  test('shows zero points for a completed knockout match without score details', () => {
+    const match = {
+      ...makeMatch('k1', 'France', 'England'),
+      stage: 'Round of 16',
+      effective_home_score: 1,
+      effective_away_score: 0,
+    }
+
+    render(
+      <KnockoutRoundPredictions
+        matches={[match]}
+        predictions={{}}
+        details={{}}
+        onChange={jest.fn()}
+        tournament={tournament}
+        isLocked={() => false}
+      />,
+    )
+
+    expect(screen.getByText('0 pts')).toBeInTheDocument()
+  })
+
+  test('keeps knockout matches in chronological order', () => {
+    render(
+      <KnockoutRoundPredictions
+        matches={[
+          { ...makeMatch('late', 'Brazil', 'Germany'), stage: 'Round of 16', start_time: '2026-06-15T20:00:00Z' },
+          { ...makeMatch('early', 'France', 'England'), stage: 'Round of 16', start_time: '2026-06-14T17:00:00Z', effective_home_score: 1, effective_away_score: 0 },
+        ]}
+        predictions={{}}
+        details={{}}
+        onChange={jest.fn()}
+        tournament={tournament}
+        isLocked={() => false}
+      />,
+    )
+
+    const franceScore = screen.getByText('France')
+    const brazilScore = screen.getByText('Brazil')
+    expect(franceScore.compareDocumentPosition(brazilScore) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 })
 
