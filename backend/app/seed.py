@@ -20,6 +20,18 @@ ROUNDS = [
 ]
 
 
+def find_worldcup_json() -> str | None:
+    candidates = [
+        os.path.join(os.getcwd(), "worldcup2026.json"),
+        os.path.join(os.path.dirname(__file__), "..", "..", "worldcup2026.json"),
+        "/data/worldcup2026.json",
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            return os.path.abspath(p)
+    return None
+
+
 def ensure_wc2026_seeded():
     db = SessionLocal()
     try:
@@ -37,7 +49,7 @@ def ensure_wc2026_seeded():
         from .models import Match
         match_count = db.query(Match).filter(Match.tournament_id == t.id).count()
         if match_count == 0:
-            json_path = _find_json()
+            json_path = find_worldcup_json()
             if json_path:
                 from . import ingest as ingest_module
                 n = ingest_module.ingest_file(json_path, tournament_key="wc2026")
@@ -49,15 +61,3 @@ def ensure_wc2026_seeded():
         db.rollback()
     finally:
         db.close()
-
-
-def _find_json() -> str | None:
-    candidates = [
-        os.path.join(os.getcwd(), "worldcup2026.json"),
-        os.path.join(os.path.dirname(__file__), "..", "..", "worldcup2026.json"),
-        "/data/worldcup2026.json",
-    ]
-    for p in candidates:
-        if os.path.exists(p):
-            return os.path.abspath(p)
-    return None

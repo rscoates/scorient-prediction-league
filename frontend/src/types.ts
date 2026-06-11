@@ -70,10 +70,24 @@ export interface MatchDetail extends MatchPrediction {
   stage: string | null
   home_team: string | null
   away_team: string | null
+  pred_home: number | null
+  pred_away: number | null
   actual_home: number | null
   actual_away: number | null
   points: number
   rag: 'green' | 'amber' | 'red' | null
+}
+
+export interface ScoreSummary {
+  user_id: number
+  total_points: number
+  group_match_points: number
+  knockout_match_points: number
+  knockout_advance_points: number
+  knockout_advance_breakdown: Record<string, number>
+  bonus_points: number
+  bonus_breakdown: Record<string, number>
+  match_details: MatchDetail[]
 }
 
 export interface KnockoutPrediction {

@@ -1,8 +1,9 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import GroupPredictions from '../src/components/GroupPredictions'
+import KnockoutRoundPredictions from '../src/components/KnockoutRoundPredictions'
 import ScoreTable from '../src/components/ScoreTable'
-import type { Match, LeaderboardRow } from '../src/types'
+import type { Match, LeaderboardRow, MatchDetail, Tournament } from '../src/types'
 
 // ── Mocks ──────────────────────────────────────────────────────────────────────
 
@@ -26,6 +27,14 @@ const makeMatch = (uid: string, home: string, away: string): Match => ({
   effective_away_score: null,
 })
 
+const tournament: Tournament = {
+  id: 1,
+  key: 'wc2026',
+  name: 'World Cup 2026',
+  is_active: 1,
+  rounds: [],
+}
+
 // ── GroupPredictions ───────────────────────────────────────────────────────────
 
 describe('GroupPredictions', () => {
@@ -40,15 +49,16 @@ describe('GroupPredictions', () => {
       <GroupPredictions
         matches={matches}
         predictions={{}}
+        details={{}}
         onChange={onChange}
         locked={false}
         deadline={null}
       />,
     )
-    expect(screen.getByText('France')).toBeInTheDocument()
-    expect(screen.getByText('England')).toBeInTheDocument()
-    expect(screen.getByText('Brazil')).toBeInTheDocument()
-    expect(screen.getByText('Germany')).toBeInTheDocument()
+    expect(screen.getAllByText('France').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('England').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Brazil').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Germany').length).toBeGreaterThan(0)
   })
 
   test('score inputs are disabled when locked', () => {
@@ -56,6 +66,7 @@ describe('GroupPredictions', () => {
       <GroupPredictions
         matches={matches}
         predictions={{}}
+        details={{}}
         onChange={onChange}
         locked={true}
         deadline={new Date()}
@@ -70,6 +81,7 @@ describe('GroupPredictions', () => {
       <GroupPredictions
         matches={[makeMatch('m1', 'France', 'England')]}
         predictions={{}}
+        details={{}}
         onChange={onChange}
         locked={false}
         deadline={null}
@@ -85,12 +97,81 @@ describe('GroupPredictions', () => {
       <GroupPredictions
         matches={[]}
         predictions={{}}
+        details={{}}
         onChange={onChange}
         locked={true}
         deadline={new Date('2026-06-01')}
       />,
     )
     expect(screen.getByText(/locked/i)).toBeInTheDocument()
+  })
+
+  test('shows points for a completed group match', () => {
+    const detail: MatchDetail = {
+      match_uid: 'm1',
+      home_score: 2,
+      away_score: 1,
+      pred_home: 2,
+      pred_away: 1,
+      stage: 'Group',
+      home_team: 'France',
+      away_team: 'England',
+      actual_home: 2,
+      actual_away: 1,
+      points: 5,
+      rag: 'green',
+    }
+
+    render(
+      <GroupPredictions
+        matches={[makeMatch('m1', 'France', 'England')]}
+        predictions={{ m1: { match_uid: 'm1', home_score: 2, away_score: 1 } }}
+        details={{ m1: detail }}
+        onChange={onChange}
+        locked={false}
+        deadline={null}
+      />,
+    )
+
+    expect(screen.getByText('5')).toBeInTheDocument()
+  })
+})
+
+describe('KnockoutRoundPredictions', () => {
+  test('shows points for a completed knockout match', () => {
+    const match = {
+      ...makeMatch('k1', 'France', 'England'),
+      stage: 'Round of 16',
+      effective_home_score: 1,
+      effective_away_score: 0,
+    }
+    const detail: MatchDetail = {
+      match_uid: 'k1',
+      home_score: 1,
+      away_score: 0,
+      pred_home: 1,
+      pred_away: 0,
+      stage: 'Round of 16',
+      home_team: 'France',
+      away_team: 'England',
+      actual_home: 1,
+      actual_away: 0,
+      points: 5,
+      rag: 'green',
+    }
+
+    render(
+      <KnockoutRoundPredictions
+        matches={[match]}
+        predictions={{ k1: { match_uid: 'k1', home_score: 1, away_score: 0 } }}
+        details={{ k1: detail }}
+        onChange={jest.fn()}
+        tournament={tournament}
+        isLocked={() => false}
+      />,
+    )
+
+    expect(screen.getByText('5 pts')).toBeInTheDocument()
   })
 })
 

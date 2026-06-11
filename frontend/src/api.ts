@@ -2,7 +2,7 @@ import axios from 'axios'
 import type {
   User, Tournament, Match, League, LeaderboardRow,
   MatchPrediction, KnockoutPrediction, BonusPrediction,
-  BonusResult, KnockoutResult,
+  BonusResult, KnockoutResult, ScoreSummary,
 } from './types'
 
 const BASE = import.meta.env.VITE_API_URL ?? '/api'
@@ -107,7 +107,7 @@ export const saveBonusPrediction = (tournamentKey: string, data: Partial<BonusPr
   http.put<BonusPrediction>(`/predictions/bonus/${tournamentKey}`, data).then((r) => r.data)
 
 export const getMyScore = (tournamentKey: string) =>
-  http.get(`/predictions/score/${tournamentKey}`).then((r) => r.data)
+  http.get<ScoreSummary>(`/predictions/score/${tournamentKey}`).then((r) => r.data)
 
 // ── Admin ──────────────────────────────────────────────────────────────────────
 

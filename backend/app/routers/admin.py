@@ -13,6 +13,7 @@ from ..models import (
 )
 from ..scoring import calculate_leaderboard
 from .. import ingest as ingest_module
+from ..seed import find_worldcup_json
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -167,10 +168,9 @@ def set_knockout_result(
 
 @router.post("/ingest")
 def run_ingest(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "worldcup2026.json")
-    path = os.path.abspath(path)
-    if not os.path.exists(path):
-        raise HTTPException(status_code=404, detail=f"worldcup2026.json not found at {path}")
+    path = find_worldcup_json()
+    if not path:
+        raise HTTPException(status_code=404, detail="worldcup2026.json not found")
     count = ingest_module.ingest_file(path)
     return {"ingested": count}
 

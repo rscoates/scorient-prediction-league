@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import * as api from '../api'
-import type { Match, MatchPrediction, Tournament } from '../types'
+import type { Match, MatchDetail, MatchPrediction, ScoreSummary, Tournament } from '../types'
 import GroupPredictions from '../components/GroupPredictions'
 import KnockoutRoundPredictions from '../components/KnockoutRoundPredictions'
 import InitialKnockoutPrediction from '../components/InitialKnockoutPrediction'
@@ -19,6 +19,7 @@ export default function PredictionsPage() {
   const [tab, setTab] = useState<Tab>('group')
   const [matches, setMatches] = useState<Match[]>([])
   const [predictions, setPredictions] = useState<Record<string, MatchPrediction>>({})
+  const [scoreSummary, setScoreSummary] = useState<ScoreSummary | null>(null)
   const [tournament, setTournament] = useState<Tournament | null>(null)
   const [loading, setLoading] = useState(true)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -27,15 +28,17 @@ export default function PredictionsPage() {
     setLoading(true)
     try {
       const t = await api.getTournament('wc2026')
-      const [matchList, predList] = await Promise.all([
+      const [matchList, predList, score] = await Promise.all([
         api.getMatches({ tournament_id: t.id }),
         api.getMyMatchPredictions(),
+        api.getMyScore('wc2026'),
       ])
       setTournament(t)
       setMatches(matchList)
       const predMap: Record<string, MatchPrediction> = {}
       predList.forEach((p) => { predMap[p.match_uid] = p })
       setPredictions(predMap)
+      setScoreSummary(score)
       setSaveError(null)
     } finally {
       setLoading(false)
@@ -50,6 +53,8 @@ export default function PredictionsPage() {
       setPredictions((prev) => ({ ...prev, [matchUid]: { match_uid: matchUid, home_score: home, away_score: away } }))
       try {
         await api.saveMatchPrediction(matchUid, home, away)
+        const score = await api.getMyScore('wc2026')
+        setScoreSummary(score)
       } catch (err: any) {
         const detail = err?.response?.data?.detail
         setSaveError(typeof detail === 'string' ? detail : 'Could not save prediction')
@@ -62,6 +67,10 @@ export default function PredictionsPage() {
 
   const groupMatches = matches.filter((m) => m.stage === 'Group')
   const knockoutMatches = matches.filter((m) => m.stage && m.stage !== 'Group')
+  const scoreDetails = (scoreSummary?.match_details ?? []).reduce<Record<string, MatchDetail>>((acc, detail) => {
+    acc[detail.match_uid] = detail
+    return acc
+  }, {})
 
   const deadlineFor = (stage: string) => {
     const round = tournament?.rounds.find((r) => r.stage === stage)
@@ -109,6 +118,7 @@ export default function PredictionsPage() {
         <GroupPredictions
           matches={groupMatches}
           predictions={predictions}
+          details={scoreDetails}
           onChange={handlePredictionChange}
           locked={isLocked('Group')}
           deadline={deadlineFor('Group')}
@@ -119,6 +129,7 @@ export default function PredictionsPage() {
         <KnockoutRoundPredictions
           matches={knockoutMatches}
           predictions={predictions}
+          details={scoreDetails}
           onChange={handlePredictionChange}
           tournament={tournament}
           isLocked={isLocked}

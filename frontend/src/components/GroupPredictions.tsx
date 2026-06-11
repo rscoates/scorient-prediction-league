@@ -1,9 +1,10 @@
 import { useRef, useCallback } from 'react'
-import type { Match, MatchPrediction, RagStatus } from '../types'
+import type { Match, MatchDetail, MatchPrediction, RagStatus } from '../types'
 
 interface Props {
   matches: Match[]
   predictions: Record<string, MatchPrediction>
+  details: Record<string, MatchDetail>
   onChange: (matchUid: string, home: number | null, away: number | null) => void
   locked: boolean
   deadline: Date | null
@@ -203,7 +204,7 @@ export function buildGroupTable(groupMatches: Match[], predictions: Record<strin
   return sortRowsByTieBreakers(rows, groupMatches, predictions)
 }
 
-export default function GroupPredictions({ matches, predictions, onChange, locked, deadline }: Props) {
+export default function GroupPredictions({ matches, predictions, details, onChange, locked, deadline }: Props) {
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   const handleChange = useCallback(
@@ -255,7 +256,8 @@ export default function GroupPredictions({ matches, predictions, onChange, locke
               <tbody>
                 {groupMatches.map((match, idx) => {
                   const pred = predictions[match.match_uid]
-                  const rag: RagStatus = null // would come from user score details
+                  const detail = details[match.match_uid]
+                  const rag: RagStatus = detail?.rag ?? null
                   const homeKey = `${match.match_uid}-home`
                   const awayKey = `${match.match_uid}-away`
                   // Next input key for tab order
@@ -315,7 +317,11 @@ export default function GroupPredictions({ matches, predictions, onChange, locke
                         )}
                       </td>
                       <td className="py-2.5 px-3 text-center hidden md:table-cell">
-                        <span className="text-gray-400 text-xs">–</span>
+                        {detail && detail.actual_home !== null && detail.actual_away !== null ? (
+                          <span className="font-semibold text-xs">{detail.points}</span>
+                        ) : (
+                          <span className="text-gray-400 text-xs">–</span>
+                        )}
                       </td>
                     </tr>
                   )

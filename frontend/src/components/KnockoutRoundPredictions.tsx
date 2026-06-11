@@ -1,4 +1,4 @@
-import type { Match, MatchPrediction, Tournament } from '../types'
+import type { Match, MatchDetail, MatchPrediction, RagStatus, Tournament } from '../types'
 
 const STAGE_ORDER = ['Round of 32', 'Round of 16', 'Quarter-Final', 'Semi-Final', 'Final']
 
@@ -9,12 +9,20 @@ const isPlaceholder = (name: string | null | undefined) =>
 interface Props {
   matches: Match[]
   predictions: Record<string, MatchPrediction>
+  details: Record<string, MatchDetail>
   onChange: (matchUid: string, home: number | null, away: number | null) => void
   tournament: Tournament | null
   isLocked: (stage: string) => boolean
 }
 
-export default function KnockoutRoundPredictions({ matches, predictions, onChange, tournament, isLocked }: Props) {
+function ragClass(rag: RagStatus): string {
+  if (rag === 'green') return 'rag-green'
+  if (rag === 'amber') return 'rag-amber'
+  if (rag === 'red') return 'rag-red'
+  return 'bg-gray-100 text-gray-500'
+}
+
+export default function KnockoutRoundPredictions({ matches, predictions, details, onChange, tournament, isLocked }: Props) {
   const byStage: Record<string, Match[]> = {}
   for (const m of matches) {
     const s = m.stage ?? 'Other'
@@ -58,6 +66,7 @@ export default function KnockoutRoundPredictions({ matches, predictions, onChang
             <div className="grid gap-3 sm:grid-cols-2">
               {stageMatches.map((match) => {
                 const pred = predictions[match.match_uid]
+                const detail = details[match.match_uid]
                 const teamsUnknown = isPlaceholder(match.home_team) || isPlaceholder(match.away_team)
                 const locked = deadlineLocked || teamsUnknown
                 return (
@@ -96,6 +105,11 @@ export default function KnockoutRoundPredictions({ matches, predictions, onChang
                     {match.effective_home_score !== null && match.effective_away_score !== null && (
                       <span className="text-xs text-gray-400 font-mono ml-2">
                         ({match.effective_home_score}–{match.effective_away_score})
+                      </span>
+                    )}
+                    {detail && detail.actual_home !== null && detail.actual_away !== null && (
+                      <span className={`text-xs font-semibold rounded-full px-2 py-1 ml-2 ${ragClass(detail.rag)}`}>
+                        {detail.points} pts
                       </span>
                     )}
                     {teamsUnknown && (
