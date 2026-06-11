@@ -170,6 +170,26 @@ describe('GroupPredictions', () => {
     const brazilRow = screen.getByLabelText('Brazil score').closest('tr')
     expect(franceRow?.compareDocumentPosition(brazilRow as Node) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
+
+  test('orders group sections by earliest kickoff time', () => {
+    render(
+      <GroupPredictions
+        matches={[
+          { ...makeMatch('a1', 'Mexico', 'South Africa'), group: 'Group A', start_time: '2026-06-13T20:00:00Z' },
+          { ...makeMatch('b1', 'Canada', 'Bosnia & Herzegovina'), group: 'Group B', start_time: '2026-06-12T15:00:00Z' },
+        ]}
+        predictions={{}}
+        details={{}}
+        onChange={onChange}
+        locked={false}
+        deadline={null}
+      />,
+    )
+
+    const groupAHeading = screen.getByText('Group A')
+    const groupBHeading = screen.getByText('Group B')
+    expect(groupBHeading.compareDocumentPosition(groupAHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
 })
 
 describe('KnockoutRoundPredictions', () => {

@@ -19,6 +19,11 @@ function sortMatchesChronologically(matches: Match[]): Match[] {
   })
 }
 
+function earliestMatchTime(matches: Match[]): number {
+  const firstMatch = sortMatchesChronologically(matches)[0]
+  return firstMatch?.start_time ? Date.parse(firstMatch.start_time) : Number.MAX_SAFE_INTEGER
+}
+
 function actualScore(match: Match, detail?: MatchDetail): { home: number | null; away: number | null } {
   return {
     home: match.effective_home_score ?? detail?.actual_home ?? null,
@@ -39,11 +44,15 @@ export function groupByGroup(matches: Match[]): Record<string, Match[]> {
     if (!groups[g]) groups[g] = []
     groups[g].push(m)
   }
-  // Sort groups alphabetically
+
   return Object.fromEntries(
     Object.entries(groups)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([group, groupMatches]) => [group, sortMatchesChronologically(groupMatches)]),
+      .map(([group, groupMatches]) => [group, sortMatchesChronologically(groupMatches)] as const)
+      .sort(([groupA, matchesA], [groupB, matchesB]) => {
+        const timeDiff = earliestMatchTime(matchesA) - earliestMatchTime(matchesB)
+        if (timeDiff !== 0) return timeDiff
+        return groupA.localeCompare(groupB)
+      })
   )
 }
 
