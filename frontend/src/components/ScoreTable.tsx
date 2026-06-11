@@ -1,11 +1,13 @@
+import { Link } from 'react-router-dom'
 import type { LeaderboardRow } from '../types'
 
 interface Props {
   rows: LeaderboardRow[]
   highlightUserId?: number
+  leagueId?: number
 }
 
-export default function ScoreTable({ rows, highlightUserId }: Props) {
+export default function ScoreTable({ rows, highlightUserId, leagueId }: Props) {
   if (rows.length === 0) {
     return <div className="card text-center text-gray-400 py-10">No scores yet.</div>
   }
@@ -46,9 +48,22 @@ export default function ScoreTable({ rows, highlightUserId }: Props) {
                       <img src={row.avatar_url} alt="" className="h-7 w-7 rounded-full" />
                     )}
                     <div>
-                      <div className={`font-medium ${isHighlighted ? 'text-brand-900' : 'text-brand-800'}`}>
-                        {row.display_name ?? row.email}
-                      </div>
+                      {leagueId ? (
+                        <Link
+                          to={`/predictions?${new URLSearchParams({
+                            userId: String(row.user_id),
+                            name: row.display_name ?? row.email,
+                            leagueId: String(leagueId),
+                          }).toString()}`}
+                          className={`font-medium hover:underline ${isHighlighted ? 'text-brand-900' : 'text-brand-800'}`}
+                        >
+                          {row.display_name ?? row.email}
+                        </Link>
+                      ) : (
+                        <div className={`font-medium ${isHighlighted ? 'text-brand-900' : 'text-brand-800'}`}>
+                          {row.display_name ?? row.email}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </td>

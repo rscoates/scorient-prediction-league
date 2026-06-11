@@ -5,9 +5,12 @@ interface Props {
   matches: Match[]
   predictions: Record<string, MatchPrediction>
   details: Record<string, MatchDetail>
+  comparisonPredictions?: Record<string, MatchPrediction>
+  comparisonLabel?: string
   onChange: (matchUid: string, home: number | null, away: number | null) => void
   locked: boolean
   deadline: Date | null
+  readOnly?: boolean
 }
 
 function sortMatchesChronologically(matches: Match[]): Match[] {
@@ -61,6 +64,13 @@ function ragClass(rag: RagStatus): string {
   if (rag === 'amber') return 'rag-amber'
   if (rag === 'red') return 'rag-red'
   return ''
+}
+
+function formatPrediction(pred?: MatchPrediction): string {
+  if (pred?.home_score === null || pred?.home_score === undefined || pred?.away_score === null || pred?.away_score === undefined) {
+    return '—'
+  }
+  return `${pred.home_score}–${pred.away_score}`
 }
 
 export interface GroupTableRow {
@@ -238,8 +248,19 @@ export function buildGroupTable(groupMatches: Match[], predictions: Record<strin
   return sortRowsByTieBreakers(rows, groupMatches, predictions)
 }
 
-export default function GroupPredictions({ matches, predictions, details, onChange, locked, deadline }: Props) {
+export default function GroupPredictions({
+  matches,
+  predictions,
+  details,
+  comparisonPredictions,
+  comparisonLabel = 'You',
+  onChange,
+  locked,
+  deadline,
+  readOnly = false,
+}: Props) {
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+  const inputsDisabled = locked || readOnly
 
   const handleChange = useCallback(
     (matchUid: string, side: 'home' | 'away', raw: string) => {
@@ -318,9 +339,9 @@ export default function GroupPredictions({ matches, predictions, details, onChan
                             inputMode="numeric"
                             min={0}
                             max={99}
-                            className={`score-input ${locked ? 'opacity-60 cursor-not-allowed' : ''}`}
+                            className={`score-input ${inputsDisabled ? 'opacity-60 cursor-not-allowed' : ''}`}
                             value={pred?.home_score ?? ''}
-                            disabled={locked}
+                            disabled={inputsDisabled}
                             onChange={(e) => handleChange(match.match_uid, 'home', e.target.value)}
                             onKeyDown={(e) => handleKeyDown(e, awayKey)}
                             aria-label={`${match.home_team} score`}
@@ -332,14 +353,19 @@ export default function GroupPredictions({ matches, predictions, details, onChan
                             inputMode="numeric"
                             min={0}
                             max={99}
-                            className={`score-input ${locked ? 'opacity-60 cursor-not-allowed' : ''}`}
+                            className={`score-input ${inputsDisabled ? 'opacity-60 cursor-not-allowed' : ''}`}
                             value={pred?.away_score ?? ''}
-                            disabled={locked}
+                            disabled={inputsDisabled}
                             onChange={(e) => handleChange(match.match_uid, 'away', e.target.value)}
                             onKeyDown={(e) => handleKeyDown(e, tabNextKey)}
                             aria-label={`${match.away_team} score`}
                           />
                         </div>
+                        {comparisonPredictions && (
+                          <div className="mt-1 text-center text-[11px] text-gray-500">
+                            <span className="font-medium text-gray-600">{comparisonLabel}:</span> {formatPrediction(comparisonPredictions[match.match_uid])}
+                          </div>
+                        )}
                       </td>
                       <td className="py-2.5 px-3 font-medium text-brand-800">{match.away_team}</td>
                       <td className="py-2.5 px-3 text-center hidden md:table-cell">

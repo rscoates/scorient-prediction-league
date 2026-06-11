@@ -10,6 +10,9 @@ interface Props {
   deadline: Date | null
   groupMatches: Match[]
   groupPredictions: Record<string, MatchPrediction>
+  targetUserId?: number
+  comparisonLabel?: string
+  readOnly?: boolean
 }
 
 interface RoundConfig {
@@ -27,8 +30,26 @@ const ROUNDS: RoundConfig[] = [
   { key: 'final_teams', label: 'The Final (2 teams)', count: 2, points: '20 pts each' },
 ]
 
-export default function InitialKnockoutPrediction({ tournamentKey, allTeams, locked, deadline, groupMatches, groupPredictions }: Props) {
+function formatTeams(teams: string[]): string {
+  if (teams.length === 0) return '—'
+  return teams.join(', ')
+}
+
+export default function InitialKnockoutPrediction({
+  tournamentKey,
+  allTeams,
+  locked,
+  deadline,
+  groupMatches,
+  groupPredictions,
+  targetUserId,
+  comparisonLabel = 'You',
+  readOnly = false,
+}: Props) {
   const [pred, setPred] = useState<KnockoutPrediction>({
+    r32_teams: [], r16_teams: [], qf_teams: [], sf_teams: [], final_teams: [], winner: null,
+  })
+  const [comparisonPred, setComparisonPred] = useState<KnockoutPrediction>({
     r32_teams: [], r16_teams: [], qf_teams: [], sf_teams: [], final_teams: [], winner: null,
   })
   const [loading, setLoading] = useState(true)
@@ -70,7 +91,7 @@ export default function InitialKnockoutPrediction({ tournamentKey, allTeams, loc
   }
 
   const handleAutoFillR32 = async () => {
-    if (!allGroupPredsFilled || locked) return
+    if (!allGroupPredsFilled || locked || readOnly) return
     const r32 = computeR32Teams()
     const newPred = { ...pred, r32_teams: r32 }
     setPred(newPred)
@@ -83,13 +104,23 @@ export default function InitialKnockoutPrediction({ tournamentKey, allTeams, loc
   }
 
   useEffect(() => {
-    api.getKnockoutPrediction(tournamentKey)
-      .then((p) => { if (p && Object.keys(p).length > 0) setPred(p as KnockoutPrediction) })
+    Promise.all([
+      api.getKnockoutPrediction(tournamentKey, targetUserId),
+      targetUserId ? api.getKnockoutPrediction(tournamentKey) : Promise.resolve(null),
+    ])
+      .then(([mainPred, ownPred]) => {
+        if (mainPred && Object.keys(mainPred).length > 0) setPred(mainPred as KnockoutPrediction)
+        if (ownPred && Object.keys(ownPred).length > 0) setComparisonPred(ownPred as KnockoutPrediction)
+      })
+      .catch(() => {
+        setPred({ r32_teams: [], r16_teams: [], qf_teams: [], sf_teams: [], final_teams: [], winner: null })
+        setComparisonPred({ r32_teams: [], r16_teams: [], qf_teams: [], sf_teams: [], final_teams: [], winner: null })
+      })
       .finally(() => setLoading(false))
-  }, [tournamentKey])
+  }, [tournamentKey, targetUserId])
 
   const toggleTeam = async (roundKey: keyof KnockoutPrediction, team: string) => {
-    if (locked) return
+    if (locked || readOnly) return
     const current = (pred[roundKey] ?? []) as string[]
     const updated = current.includes(team)
       ? current.filter((t) => t !== team)
@@ -103,7 +134,7 @@ export default function InitialKnockoutPrediction({ tournamentKey, allTeams, loc
   }
 
   const setWinner = async (team: string) => {
-    if (locked) return
+    if (locked || readOnly) return
     const newPred = { ...pred, winner: team }
     setPred(newPred)
     setSaving(true)
@@ -137,7 +168,7 @@ export default function InitialKnockoutPrediction({ tournamentKey, allTeams, loc
             <div className="flex items-baseline justify-between mb-3">
               <h3 className="font-medium text-brand-800 text-sm">{label}</h3>
               <div className="flex items-center gap-3">
-                {isR32 && !locked && (
+                {isR32 && !locked && !readOnly && (
                   <div className="flex items-center gap-2">
                     {!allGroupPredsFilled && (
                       <span className="text-xs text-amber-600">Fill in all group predictions first</span>
@@ -164,6 +195,11 @@ export default function InitialKnockoutPrediction({ tournamentKey, allTeams, loc
                 <span className="text-red-500 ml-2">Too many selected</span>
               )}
             </div>
+            {targetUserId && (
+              <p className="text-xs text-gray-500 mb-3">
+                <span className="font-medium text-gray-600">{comparisonLabel}:</span> {formatTeams((comparisonPred[key] ?? []) as string[])}
+              </p>
+            )}
             <div className="flex flex-wrap gap-2">
               {allTeams.map((team) => {
                 const isSelected = selected.includes(team)
@@ -176,7 +212,7 @@ export default function InitialKnockoutPrediction({ tournamentKey, allTeams, loc
                       isSelected
                         ? 'bg-brand-800 text-white'
                         : 'bg-gray-100 text-gray-600 hover:bg-brand-100 hover:text-brand-800'
-                    } ${locked ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    } ${(locked || readOnly) ? 'opacity-60 cursor-not-allowed' : ''}`}
                   >
                     {team}
                   </button>
@@ -211,6 +247,11 @@ export default function InitialKnockoutPrediction({ tournamentKey, allTeams, loc
         </div>
         {pred.winner && (
           <p className="mt-3 text-sm text-brand-700 font-medium">Winner: {pred.winner}</p>
+        )}
+        {targetUserId && (
+          <p className="mt-2 text-xs text-gray-500">
+            <span className="font-medium text-gray-600">{comparisonLabel}:</span> {comparisonPred.winner ?? '—'}
+          </p>
         )}
       </div>
     </div>

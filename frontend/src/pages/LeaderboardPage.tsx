@@ -3,9 +3,11 @@ import { useParams, Link } from 'react-router-dom'
 import * as api from '../api'
 import type { LeaderboardRow, League } from '../types'
 import ScoreTable from '../components/ScoreTable'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function LeaderboardPage() {
   const { leagueId } = useParams<{ leagueId: string }>()
+  const { user } = useAuth()
   const [rows, setRows] = useState<LeaderboardRow[]>([])
   const [league, setLeague] = useState<League | null>(null)
   const [loading, setLoading] = useState(true)
@@ -53,7 +55,7 @@ export default function LeaderboardPage() {
         </div>
       </div>
 
-      <ScoreTable rows={rows} />
+      <ScoreTable rows={rows} highlightUserId={user?.id} leagueId={league ? parseInt(leagueId ?? '0', 10) : undefined} />
     </div>
   )
 }

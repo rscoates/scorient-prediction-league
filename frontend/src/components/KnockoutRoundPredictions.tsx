@@ -10,9 +10,12 @@ interface Props {
   matches: Match[]
   predictions: Record<string, MatchPrediction>
   details: Record<string, MatchDetail>
+  comparisonPredictions?: Record<string, MatchPrediction>
+  comparisonLabel?: string
   onChange: (matchUid: string, home: number | null, away: number | null) => void
   tournament: Tournament | null
   isLocked: (stage: string) => boolean
+  readOnly?: boolean
 }
 
 function sortMatchesChronologically(matches: Match[]): Match[] {
@@ -43,7 +46,24 @@ function ragClass(rag: RagStatus): string {
   return 'bg-gray-100 text-gray-500'
 }
 
-export default function KnockoutRoundPredictions({ matches, predictions, details, onChange, tournament, isLocked }: Props) {
+function formatPrediction(pred?: MatchPrediction): string {
+  if (pred?.home_score === null || pred?.home_score === undefined || pred?.away_score === null || pred?.away_score === undefined) {
+    return '—'
+  }
+  return `${pred.home_score}–${pred.away_score}`
+}
+
+export default function KnockoutRoundPredictions({
+  matches,
+  predictions,
+  details,
+  comparisonPredictions,
+  comparisonLabel = 'You',
+  onChange,
+  tournament,
+  isLocked,
+  readOnly = false,
+}: Props) {
   const byStage: Record<string, Match[]> = {}
   for (const m of matches) {
     const s = m.stage ?? 'Other'
@@ -94,38 +114,45 @@ export default function KnockoutRoundPredictions({ matches, predictions, details
                 const detail = details[match.match_uid]
                 const actual = actualScore(match, detail)
                 const teamsUnknown = isPlaceholder(match.home_team) || isPlaceholder(match.away_team)
-                const locked = deadlineLocked || teamsUnknown
+                const locked = deadlineLocked || teamsUnknown || readOnly
                 return (
                   <div key={match.match_uid} className={`card flex items-center gap-3 ${teamsUnknown ? 'opacity-50' : ''}`}>
                     <span className="font-medium text-brand-800 text-sm flex-1 text-right">{match.home_team ?? '?'}</span>
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        min={0}
-                        max={99}
-                        className={`score-input ${locked ? 'opacity-60 cursor-not-allowed' : ''}`}
-                        value={pred?.home_score ?? ''}
-                        disabled={locked}
-                        onChange={(e) => {
-                          const v = e.target.value === '' ? null : parseInt(e.target.value, 10)
-                          onChange(match.match_uid, v, pred?.away_score ?? null)
-                        }}
-                      />
-                      <span className="text-gray-400 font-light">–</span>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        min={0}
-                        max={99}
-                        className={`score-input ${locked ? 'opacity-60 cursor-not-allowed' : ''}`}
-                        value={pred?.away_score ?? ''}
-                        disabled={locked}
-                        onChange={(e) => {
-                          const v = e.target.value === '' ? null : parseInt(e.target.value, 10)
-                          onChange(match.match_uid, pred?.home_score ?? null, v)
-                        }}
-                      />
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={0}
+                          max={99}
+                          className={`score-input ${locked ? 'opacity-60 cursor-not-allowed' : ''}`}
+                          value={pred?.home_score ?? ''}
+                          disabled={locked}
+                          onChange={(e) => {
+                            const v = e.target.value === '' ? null : parseInt(e.target.value, 10)
+                            onChange(match.match_uid, v, pred?.away_score ?? null)
+                          }}
+                        />
+                        <span className="text-gray-400 font-light">–</span>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={0}
+                          max={99}
+                          className={`score-input ${locked ? 'opacity-60 cursor-not-allowed' : ''}`}
+                          value={pred?.away_score ?? ''}
+                          disabled={locked}
+                          onChange={(e) => {
+                            const v = e.target.value === '' ? null : parseInt(e.target.value, 10)
+                            onChange(match.match_uid, pred?.home_score ?? null, v)
+                          }}
+                        />
+                      </div>
+                      {comparisonPredictions && (
+                        <div className="mt-1 text-center text-[11px] text-gray-500">
+                          <span className="font-medium text-gray-600">{comparisonLabel}:</span> {formatPrediction(comparisonPredictions[match.match_uid])}
+                        </div>
+                      )}
                     </div>
                     <span className="font-medium text-brand-800 text-sm flex-1">{match.away_team ?? '?'}</span>
                     {isMatchCompleted(match, detail) && (

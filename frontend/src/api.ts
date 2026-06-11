@@ -84,6 +84,11 @@ export const clearOverride = (matchUid: string) =>
 export const getMyMatchPredictions = () =>
   http.get<MatchPrediction[]>('/predictions/matches').then((r) => r.data)
 
+export const getUserMatchPredictions = (userId: number, tournamentId: number) =>
+  http.get<MatchPrediction[]>(`/predictions/matches/user/${userId}`, {
+    params: { tournament_id: tournamentId },
+  }).then((r) => r.data)
+
 export const saveMatchPrediction = (matchUid: string, home: number | null, away: number | null) =>
   http.put<MatchPrediction>(`/predictions/matches/${matchUid}`, {
     home_score: home,

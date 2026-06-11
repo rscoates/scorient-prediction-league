@@ -1,5 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
+import { MemoryRouter } from 'react-router-dom'
 import GroupPredictions from '../src/components/GroupPredictions'
 import KnockoutRoundPredictions from '../src/components/KnockoutRoundPredictions'
 import ScoreTable from '../src/components/ScoreTable'
@@ -127,6 +128,7 @@ describe('GroupPredictions', () => {
         matches={[makeMatch('m1', 'France', 'England')]}
         predictions={{ m1: { match_uid: 'm1', home_score: 2, away_score: 1 } }}
         details={{ m1: detail }}
+        comparisonPredictions={{}}
         onChange={onChange}
         locked={false}
         deadline={null}
@@ -142,6 +144,7 @@ describe('GroupPredictions', () => {
         matches={[{ ...makeMatch('m1', 'France', 'England'), effective_home_score: 2, effective_away_score: 1 }]}
         predictions={{}}
         details={{}}
+        comparisonPredictions={{}}
         onChange={onChange}
         locked={false}
         deadline={null}
@@ -160,6 +163,7 @@ describe('GroupPredictions', () => {
         ]}
         predictions={{}}
         details={{}}
+        comparisonPredictions={{}}
         onChange={onChange}
         locked={false}
         deadline={null}
@@ -180,6 +184,7 @@ describe('GroupPredictions', () => {
         ]}
         predictions={{}}
         details={{}}
+        comparisonPredictions={{}}
         onChange={onChange}
         locked={false}
         deadline={null}
@@ -189,6 +194,25 @@ describe('GroupPredictions', () => {
     const groupAHeading = screen.getByText('Group A')
     const groupBHeading = screen.getByText('Group B')
     expect(groupBHeading.compareDocumentPosition(groupAHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  test('shows your prediction alongside the viewed user', () => {
+    render(
+      <GroupPredictions
+        matches={[makeMatch('m1', 'France', 'England')]}
+        predictions={{ m1: { match_uid: 'm1', home_score: 1, away_score: 0 } }}
+        details={{}}
+        comparisonPredictions={{ m1: { match_uid: 'm1', home_score: 2, away_score: 1 } }}
+        comparisonLabel="You"
+        onChange={onChange}
+        locked={true}
+        deadline={null}
+        readOnly={true}
+      />,
+    )
+
+    expect(screen.getByText(/You:/)).toBeInTheDocument()
+    expect(screen.getByText(/2–1/)).toBeInTheDocument()
   })
 })
 
@@ -220,6 +244,7 @@ describe('KnockoutRoundPredictions', () => {
         matches={[match]}
         predictions={{ k1: { match_uid: 'k1', home_score: 1, away_score: 0 } }}
         details={{ k1: detail }}
+        comparisonPredictions={{}}
         onChange={jest.fn()}
         tournament={tournament}
         isLocked={() => false}
@@ -242,6 +267,7 @@ describe('KnockoutRoundPredictions', () => {
         matches={[match]}
         predictions={{}}
         details={{}}
+        comparisonPredictions={{}}
         onChange={jest.fn()}
         tournament={tournament}
         isLocked={() => false}
@@ -260,6 +286,7 @@ describe('KnockoutRoundPredictions', () => {
         ]}
         predictions={{}}
         details={{}}
+        comparisonPredictions={{}}
         onChange={jest.fn()}
         tournament={tournament}
         isLocked={() => false}
@@ -269,6 +296,30 @@ describe('KnockoutRoundPredictions', () => {
     const franceScore = screen.getByText('France')
     const brazilScore = screen.getByText('Brazil')
     expect(franceScore.compareDocumentPosition(brazilScore) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  test('shows your knockout prediction alongside the viewed user', () => {
+    const match = {
+      ...makeMatch('k1', 'France', 'England'),
+      stage: 'Round of 16',
+    }
+
+    render(
+      <KnockoutRoundPredictions
+        matches={[match]}
+        predictions={{ k1: { match_uid: 'k1', home_score: 1, away_score: 0 } }}
+        details={{}}
+        comparisonPredictions={{ k1: { match_uid: 'k1', home_score: 2, away_score: 1 } }}
+        comparisonLabel="You"
+        onChange={jest.fn()}
+        tournament={tournament}
+        isLocked={() => false}
+        readOnly={true}
+      />,
+    )
+
+    expect(screen.getByText(/You:/)).toBeInTheDocument()
+    expect(screen.getByText(/2–1/)).toBeInTheDocument()
   })
 })
 
@@ -303,5 +354,16 @@ describe('ScoreTable', () => {
   test('shows empty state when no rows', () => {
     render(<ScoreTable rows={[]} />)
     expect(screen.getByText(/no scores yet/i)).toBeInTheDocument()
+  })
+
+  test('links player names to compare view when league id is provided', () => {
+    render(
+      <MemoryRouter>
+        <ScoreTable rows={rows} leagueId={7} />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('link', { name: 'Alice' })).toHaveAttribute('href', expect.stringContaining('/predictions?'))
+    expect(screen.getByRole('link', { name: 'Alice' })).toHaveAttribute('href', expect.stringContaining('userId=1'))
   })
 })
