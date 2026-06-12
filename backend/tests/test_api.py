@@ -1,8 +1,10 @@
 """Integration tests for the API endpoints."""
-import os
-import pytest
+import io
+import json
+
 from fastapi.testclient import TestClient
 
+from app import ingest as ingest_module
 from app.auth import create_access_token, DEV_AUTH_ENABLED
 from app.models import User, Tournament, League, LeagueMembership, Match
 
@@ -208,6 +210,57 @@ def test_admin_promote_user(client, admin_user, regular_user):
     )
     assert resp.status_code == 200
     assert resp.json()["is_admin"] == 1
+
+
+def test_admin_ingest_refreshes_by_results_match_id(client, admin_user, tournament, db, monkeypatch):
+    db.add(Match(
+        match_uid="match-2026-06-11-Mexico-South_Africa",
+        results_match_id=537327,
+        tournament_id=tournament.id,
+        stage="Group",
+        home_team="Old Home",
+        away_team="Old Away",
+    ))
+    db.commit()
+
+    class DummyResponse(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    payload = json.dumps({
+            "matches": [
+                {
+                    "id": 537327,
+                    "homeTeam": {"name": "Mexico"},
+                    "awayTeam": {"name": "South Africa"},
+                    "score": {"fullTime": {"home": 2, "away": 0}},
+                }
+            ]
+        }).encode("utf-8")
+
+    def fake_urlopen(req, timeout):
+        assert req.full_url == "http://api.football-data.org/v5/competitions/2003/matches"
+        assert req.headers.get("X-auth-token") == "test-data-key"
+        assert timeout == 30
+        return DummyResponse(payload)
+
+    monkeypatch.setenv("DATA_API_KEY", "test-data-key")
+    monkeypatch.setattr(ingest_module.urllib_request, "urlopen", fake_urlopen)
+
+    resp = client.post("/admin/ingest", headers=_auth_headers(admin_user))
+
+    assert resp.status_code == 200
+    assert resp.json() == {"ingested": 1}
+
+    updated = db.query(Match).filter(Match.results_match_id == 537327).first()
+    assert updated is not None
+    assert updated.home_team == "Mexico"
+    assert updated.away_team == "South Africa"
+    assert updated.home_score == 2
+    assert updated.away_score == 0
 
 
 # ── leaderboard ────────────────────────────────────────────────────────────────

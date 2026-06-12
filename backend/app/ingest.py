@@ -9,10 +9,14 @@ Field mapping for worldcup2026.json:
 """
 import json
 import os
-from datetime import datetime
+from urllib import request as urllib_request
 
 from .db import SessionLocal
 from .models import Match, Tournament
+
+
+RESULTS_API_URL = "http://api.football-data.org/v5/competitions/2003/matches"
+RESULTS_API_KEY_ENV = "DATA_API_KEY"
 
 
 # ── stage normalisation ────────────────────────────────────────────────────────
@@ -55,11 +59,73 @@ def make_uid(m, idx):
     return f"match-{date}-{home}-{away}".replace(" ", "_")
 
 
+def _results_api_headers() -> dict[str, str]:
+    api_key = os.getenv(RESULTS_API_KEY_ENV)
+    if not api_key:
+        raise RuntimeError(f"{RESULTS_API_KEY_ENV} is not set")
+    return {"X-Auth-Token": api_key}
+
+
+def fetch_results_matches() -> list[dict]:
+    req = urllib_request.Request(
+        RESULTS_API_URL,
+        headers=_results_api_headers(),
+        method="GET",
+    )
+    with urllib_request.urlopen(req, timeout=30) as response:
+        data = json.load(response)
+    raw_matches = data.get("matches") if isinstance(data, dict) else None
+    if not isinstance(raw_matches, list):
+        raise ValueError("API response format not recognised: expected {'matches': [...]}.")
+    return raw_matches
+
+
+def refresh_results_from_api(tournament_key: str = "wc2026"):
+    raw_matches = fetch_results_matches()
+    db = SessionLocal()
+    updated = 0
+    try:
+        tournament = db.query(Tournament).filter(Tournament.key == tournament_key).first()
+        tournament_id = tournament.id if tournament else None
+
+        for m in raw_matches:
+            match_id = m.get("id")
+            if match_id is None:
+                continue
+
+            existing = db.query(Match).filter(Match.results_match_id == match_id).first()
+            if not existing:
+                continue
+
+            home = safe_get_team(m, ["homeTeam"])
+            away = safe_get_team(m, ["awayTeam"])
+            full_time = (m.get("score") or {}).get("fullTime") or {}
+            home_score = full_time.get("home")
+            away_score = full_time.get("away")
+
+            existing.home_team = home or existing.home_team
+            existing.away_team = away or existing.away_team
+            if home_score is not None and existing.admin_home_score is None:
+                existing.home_score = int(home_score)
+            if away_score is not None and existing.admin_away_score is None:
+                existing.away_score = int(away_score)
+            existing.raw = json.dumps(m)
+            if tournament_id and existing.tournament_id is None:
+                existing.tournament_id = tournament_id
+            updated += 1
+
+        db.commit()
+    finally:
+        db.close()
+    return updated
+
+
 def ingest_file(path, tournament_key: str = "wc2026"):
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
     raw_matches = data.get("matches") if isinstance(data, dict) and "matches" in data else data
+
     if not isinstance(raw_matches, list):
         raise ValueError("JSON format not recognised: expected a list or {'matches': [...]}")
 

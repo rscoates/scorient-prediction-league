@@ -1,5 +1,4 @@
 """Admin-only endpoints: user management, results input, ingest."""
-import os
 import json
 from typing import Optional, List
 
@@ -13,7 +12,6 @@ from ..models import (
 )
 from ..scoring import calculate_leaderboard
 from .. import ingest as ingest_module
-from ..seed import find_worldcup_json
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -168,10 +166,7 @@ def set_knockout_result(
 
 @router.post("/ingest")
 def run_ingest(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    path = find_worldcup_json()
-    if not path:
-        raise HTTPException(status_code=404, detail="worldcup2026.json not found")
-    count = ingest_module.ingest_file(path)
+    count = ingest_module.refresh_results_from_api()
     return {"ingested": count}
 
 

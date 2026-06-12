@@ -60,6 +60,7 @@ class Match(Base):
     id = Column(Integer, primary_key=True, index=True)
     tournament_id = Column(Integer, ForeignKey("tournaments.id"), nullable=True)
     match_uid = Column(String, unique=True, index=True, nullable=False)
+    results_match_id = Column(Integer, nullable=True)
     stage = Column(String, nullable=True)
     home_team = Column(String, nullable=True)
     away_team = Column(String, nullable=True)
