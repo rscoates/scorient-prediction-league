@@ -15,7 +15,7 @@ from .db import SessionLocal
 from .models import Match, Tournament
 
 
-RESULTS_API_URL = "http://api.football-data.org/v5/competitions/2003/matches"
+RESULTS_API_URL = "http://api.football-data.org/v5/competitions/2000/matches"
 RESULTS_API_KEY_ENV = "DATA_API_KEY"
 
 
