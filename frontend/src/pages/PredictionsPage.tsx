@@ -69,7 +69,7 @@ function toPredictionMap(predictions: MatchPrediction[]): Record<string, MatchPr
 export default function PredictionsPage() {
   const { user } = useAuth()
   const [searchParams] = useSearchParams()
-  const [tab, setTab] = useState<Tab>('group')
+  const [tab, setTab] = useState<Tab>('knockout')
   const [matches, setMatches] = useState<Match[]>([])
   const [predictions, setPredictions] = useState<Record<string, MatchPrediction>>({})
   const [viewedPredictions, setViewedPredictions] = useState<Record<string, MatchPrediction>>({})
