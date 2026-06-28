@@ -114,7 +114,7 @@ export default function KnockoutRoundPredictions({
                 const detail = details[match.match_uid]
                 const actual = actualScore(match, detail)
                 const teamsUnknown = isPlaceholder(match.home_team) || isPlaceholder(match.away_team)
-                const locked = deadlineLocked || teamsUnknown || match.match_uid.includes('/') ||  readOnly
+                const locked = deadlineLocked || teamsUnknown || readOnly
                 return (
                   <div key={match.match_uid} className={`card flex items-center gap-3 ${teamsUnknown ? 'opacity-50' : ''}`}>
                     <span className="font-medium text-brand-800 text-sm flex-1 text-right">{match.home_team ?? '?'}</span>
