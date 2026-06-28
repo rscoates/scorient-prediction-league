@@ -136,8 +136,8 @@ def save_match_prediction(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    matchuid = unquote(match_uid.strip())
-    m = db.query(Match).filter(Match.match_uid == matchuid).first()
+    match_uid = match_uid.replace('+', '/')  # Encode slashes in match_uid for URL safety
+    m = db.query(Match).filter(Match.match_uid == match_uid).first()
     if not m:
         raise HTTPException(status_code=404, detail="Match not found")
 

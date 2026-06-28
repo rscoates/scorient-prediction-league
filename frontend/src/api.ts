@@ -16,6 +16,8 @@ http.interceptors.request.use((config) => {
   return config
 })
 
+const replaceSlashWithPlus = (matchUid: string) => matchUid.replace(/\//g, '+')
+
 // ── Auth ───────────────────────────────────────────────────────────────────────
 
 export interface AuthResponse {
@@ -90,7 +92,7 @@ export const getUserMatchPredictions = (userId: number, tournamentId: number) =>
   }).then((r) => r.data)
 
 export const saveMatchPrediction = (matchUid: string, home: number | null, away: number | null) =>
-  http.put<MatchPrediction>(`/predictions/matches/${encodeURIComponent(matchUid)}`, {
+  http.put<MatchPrediction>(`/predictions/matches/${replaceSlashWithPlus(matchUid)}`, {
     home_score: home,
     away_score: away,
   }).then((r) => r.data)
