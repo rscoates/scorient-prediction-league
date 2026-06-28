@@ -14,6 +14,7 @@ from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from urllib.parse import unquote
 
 from ..auth import get_current_user, get_db
 from ..models import (
@@ -135,7 +136,8 @@ def save_match_prediction(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    m = db.query(Match).filter(Match.match_uid == match_uid).first()
+    matchuid = unquote(match_uid.strip())
+    m = db.query(Match).filter(Match.match_uid == matchuid).first()
     if not m:
         raise HTTPException(status_code=404, detail="Match not found")
 

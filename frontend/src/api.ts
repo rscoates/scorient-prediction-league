@@ -90,7 +90,7 @@ export const getUserMatchPredictions = (userId: number, tournamentId: number) =>
   }).then((r) => r.data)
 
 export const saveMatchPrediction = (matchUid: string, home: number | null, away: number | null) =>
-  http.put<MatchPrediction>(`/predictions/matches/${matchUid}`, {
+  http.put<MatchPrediction>(`/predictions/matches/${encodeURIComponent(matchUid)}`, {
     home_score: home,
     away_score: away,
   }).then((r) => r.data)
