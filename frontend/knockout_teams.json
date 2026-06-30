@@ -1,0 +1,42 @@
+{
+    "r32_teams": [
+        "France",
+        "Sweden",
+        "England",
+        "Congo DR",
+        "Spain",
+        "Austria",
+        "South Africa",
+        "Canada",
+        "Brazil",
+        "Japan",
+        "Germany",
+        "Paraguay",
+        "Netherlands",
+        "Morocco",
+        "Ivory Coast",
+        "Norway",
+        "Mexico",
+        "Ecuador",
+        "Belgium",
+        "Senegal",
+        "United States",
+        "Bosnia-Herzegovina",
+        "Portugal",
+        "Croatia",
+        "Colombia",
+        "Ghana",
+        "Switzerland",
+        "Algeria",
+        "Australia",
+        "Egypt",
+        "Argentina",
+        "Cape Verde Islands"
+    ],
+    "r16_teams": [
+        "Brazil",
+        "Canada",
+        "Morocco",
+        "Paraguay"
+    ]
+}

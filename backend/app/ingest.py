@@ -99,7 +99,16 @@ def refresh_results_from_api(tournament_key: str = "wc2026"):
 
             home = safe_get_team(m, ["homeTeam"])
             away = safe_get_team(m, ["awayTeam"])
-            full_time = (m.get("score") or {}).get("fullTime") or {}
+            score_obj = m.get("score") or {}
+            full_time = score_obj.get("fullTime") or {}
+            if score_obj.get("extraTime"):
+                # If there has been extra time, we need to add regularTime to extraTime to get the full score
+                extra_time = score_obj.get("extraTime") or {}
+                regular_time = score_obj.get("regularTime") or {}
+                full_time = {
+                    "home": (regular_time.get("home") or 0) + (extra_time.get("home") or 0),
+                    "away": (regular_time.get("away") or 0) + (extra_time.get("away") or 0),
+                }
             home_score = full_time.get("home")
             away_score = full_time.get("away")
 
